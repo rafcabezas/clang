@@ -133,8 +133,10 @@ CodeGenModule::~CodeGenModule() {
 }
 
 void CodeGenModule::createObjCRuntime() {
-  if (!LangOpts.NeXTRuntime)
+  if (LangOpts.getObjCRuntime() == LangOptions::GNU)
     ObjCRuntime = CreateGNUObjCRuntime(*this);
+  else if (LangOpts.getObjCRuntime() == LangOptions::Cocotron)
+    ObjCRuntime = CreateCocotronObjCRuntime(*this);
   else
     ObjCRuntime = CreateMacObjCRuntime(*this);
 }

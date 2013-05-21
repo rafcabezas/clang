@@ -4387,7 +4387,7 @@ static void EncodeBitField(const ASTContext *Ctx, std::string& S,
   // information is not especially sensible, but we're stuck with it for
   // compatibility with GCC, although providing it breaks anything that
   // actually uses runtime introspection and wants to work on both runtimes...
-  if (!Ctx->getLangOpts().NeXTRuntime) {
+  if (Ctx->getLangOpts().getObjCRuntime() != LangOptions::NeXT) {
     const RecordDecl *RD = FD->getParent();
     const ASTRecordLayout &RL = Ctx->getASTRecordLayout(RD);
     S += llvm::utostr(RL.getFieldOffset(FD->getFieldIndex()));

@@ -985,8 +985,9 @@ llvm::Constant *CodeGenModule::GetAddrOfRTTIDescriptor(QualType Ty,
   if (!ForEH && !getContext().getLangOpts().RTTI)
     return llvm::Constant::getNullValue(Int8PtrTy);
   
-  if (ForEH && Ty->isObjCObjectPointerType() && !LangOpts.NeXTRuntime)
+  if (ForEH && Ty->isObjCObjectPointerType() && getContext().getLangOpts().getObjCRuntime() != LangOptions::NeXT) {
     return ObjCRuntime->GetEHType(Ty);
+  }
 
   return RTTIBuilder(*this).BuildTypeInfo(Ty);
 }

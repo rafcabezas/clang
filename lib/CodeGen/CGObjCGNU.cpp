@@ -237,7 +237,7 @@ protected:
   llvm::Constant *NULLPtr;
   /// LLVM context.
   llvm::LLVMContext &VMContext;
-private:
+protected:
   /// Placeholder for the class.  Lots of things refer to the class before we've
   /// actually emitted it.  We use this alias as a placeholder, and then replace
   /// it with a pointer to the class structure before finally emitting the
@@ -322,6 +322,7 @@ private:
   /// Function used for non-object declared property setters.
   LazyRuntimeFunction SetStructPropertyFn;
 
+protected:
   /// The version of the runtime that this class targets.  Must match the
   /// version in the runtime.
   int RuntimeVersion;
@@ -332,7 +333,6 @@ private:
   /// Objective-C 1 property structures when targeting the GCC runtime or it
   /// will abort.
   const int ProtocolVersion;
-private:
   /// Generates an instance variable list structure.  This is a structure
   /// containing a size and an array of structures containing instance variable
   /// metadata.  This is used purely for introspection in the fragile ABI.  In
@@ -368,21 +368,21 @@ private:
   /// of the protocols without changing the ABI.
   void GenerateProtocolHolderCategory(void);
   /// Generates a class structure.
-  llvm::Constant *GenerateClassStructure(
-      llvm::Constant *MetaClass,
-      llvm::Constant *SuperClass,
-      unsigned info,
-      const char *Name,
-      llvm::Constant *Version,
-      llvm::Constant *InstanceSize,
-      llvm::Constant *IVars,
-      llvm::Constant *Methods,
-      llvm::Constant *Protocols,
-      llvm::Constant *IvarOffsets,
-      llvm::Constant *Properties,
-      llvm::Constant *StrongIvarBitmap,
-      llvm::Constant *WeakIvarBitmap,
-      bool isMeta=false);
+  virtual llvm::Constant *GenerateClassStructure(
+                                           llvm::Constant *MetaClass,
+                                           llvm::Constant *SuperClass,
+                                           unsigned info,
+                                           const char *Name,
+                                           llvm::Constant *Version,
+                                           llvm::Constant *InstanceSize,
+                                           llvm::Constant *IVars,
+                                           llvm::Constant *Methods,
+                                           llvm::Constant *Protocols,
+                                           llvm::Constant *IvarOffsets,
+                                           llvm::Constant *Properties,
+                                           llvm::Constant *StrongIvarBitmap,
+                                           llvm::Constant *WeakIvarBitmap,
+                                           bool isMeta=false);
   /// Generates a method list.  This is used by protocols to define the required
   /// and optional methods.
   llvm::Constant *GenerateProtocolMethodList(
@@ -390,18 +390,16 @@ private:
       ArrayRef<llvm::Constant *> MethodTypes);
   /// Returns a selector with the specified type encoding.  An empty string is
   /// used to return an untyped selector (with the types field set to NULL).
-  llvm::Value *GetSelector(CGBuilderTy &Builder, Selector Sel,
+  virtual llvm::Value *GetSelector(CGBuilderTy &Builder, Selector Sel,
     const std::string &TypeEncoding, bool lval);
   /// Returns the variable used to store the offset of an instance variable.
   llvm::GlobalVariable *ObjCIvarOffsetVariable(const ObjCInterfaceDecl *ID,
-      const ObjCIvarDecl *Ivar);
-  /// Emits a reference to a class.  This allows the linker to object if there
+      const ObjCIvarDecl *Ivar);  /// Emits a reference to a class.  This allows the linker to object if there
   /// is no class of the matching name.
-  void EmitClassRef(const std::string &className);
+  virtual void EmitClassRef(const std::string &className);
   /// Emits a pointer to the named class
-  llvm::Value *GetClassNamed(CGBuilderTy &Builder, const std::string &Name,
-                             bool isWeak);
-protected:
+  virtual llvm::Value *GetClassNamed(CGBuilderTy &Builder, const std::string &Name,
+                           bool isWeak);
   /// Looks up the method for sending a message to the specified object.  This
   /// mechanism differs between the GCC and GNU runtimes, so this method must be
   /// overridden in subclasses.
@@ -653,8 +651,11 @@ class CGObjCGNUstep : public CGObjCGNU {
     }
 };
 
+#define __INCLUDED_FROM_CGOBJCGNU_CPP__
+#define __IN_ANONYMOUS_NAMESPACE__
+#include "CGObjCCocotron.cpp"
+    
 } // end anonymous namespace
-
 
 /// Emits a reference to a dummy variable which is emitted with each class.
 /// This ensures that a linker error will be generated when trying to link
@@ -1371,6 +1372,8 @@ llvm::Constant *CGObjCGNU::GenerateClassStructure(
     llvm::Constant *StrongIvarBitmap,
     llvm::Constant *WeakIvarBitmap,
     bool isMeta) {
+    
+    printf("this is the base class' GenerateClassStructure. Why is it being called?\n");
   // Set up the class structure
   // Note:  Several of these are char*s when they should be ids.  This is
   // because the runtime performs this translation on load.
@@ -2669,3 +2672,6 @@ clang::CodeGen::CreateGNUObjCRuntime(CodeGenModule &CGM) {
     return new CGObjCGNUstep(CGM);
   return new CGObjCGCC(CGM);
 }
+
+#undef __IN_ANONYMOUS_NAMESPACE__
+#include "CGObjCCocotron.cpp"

@@ -690,8 +690,12 @@ static void LangOptsToArgs(const LangOptions &Opts, ToArgsList &Res) {
     Res.push_back("-fno-rtti");
   if (Opts.MSBitfields)
     Res.push_back("-mms-bitfields");
-  if (!Opts.NeXTRuntime)
-    Res.push_back("-fgnu-runtime");
+  switch(Opts.getObjCRuntime()) {
+      case LangOptions::NeXT: Res.push_back("-fnext-runtime");  break;
+      case LangOptions::Cocotron: Res.push_back("-fcocotron-runtime");  break;
+      default:
+          Res.push_back("-fgnu-runtime"); break;
+  }
   if (Opts.Freestanding)
     Res.push_back("-ffreestanding");
   if (Opts.NoBuiltin)
@@ -1884,7 +1888,12 @@ static void ParseLangArgs(LangOptions &Opts, ArgList &Args, InputKind IK,
   Opts.NumLargeByValueCopy = Args.getLastArgIntValue(OPT_Wlarge_by_value_copy,
                                                     0, Diags);
   Opts.MSBitfields = Args.hasArg(OPT_mms_bitfields);
-  Opts.NeXTRuntime = !Args.hasArg(OPT_fgnu_runtime);
+    if (Args.hasArg(OPT_fgnu_runtime))
+      Opts.setObjCRuntime(LangOptions::GNU);
+    else if (Args.hasArg(OPT_fcocotron_runtime))
+      Opts.setObjCRuntime(LangOptions::Cocotron);
+    else
+      Opts.setObjCRuntime(LangOptions::NeXT);
   Opts.ObjCConstantStringClass =
     Args.getLastArgValue(OPT_fconstant_string_class);
   Opts.ObjCNonFragileABI = !Args.hasArg(OPT_fobjc_fragile_abi);

@@ -2318,6 +2318,9 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   if (Args.hasFlag(options::OPT_fnext_runtime, options::OPT_fgnu_runtime,
                    NeXTRuntimeIsDefault)) {
     objCRuntime.setKind(ObjCRuntime::NeXT);
+  } if (Args.hasArg(options::OPT_fcocotron_runtime)) {
+    CmdArgs.push_back("-fcocotron-runtime");
+    objCRuntime.setKind(ObjCRuntime::Cocotron);
   } else {
     CmdArgs.push_back("-fgnu-runtime");
     objCRuntime.setKind(ObjCRuntime::GNU);
