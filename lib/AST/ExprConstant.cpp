@@ -3665,9 +3665,10 @@ static int EvaluateBuiltinClassifyType(const CallExpr *E) {
 /// character of a string literal.
 template<typename LValue>
 static bool EvaluateBuiltinConstantPForLValue(const LValue &LV) {
-  const Expr *E = LV.getLValueBase().dyn_cast<const Expr*>();
-  return E && isa<StringLiteral>(E) && LV.getLValueOffset().isZero();
+    const Expr *E = LV.getLValueBase().template dyn_cast<const Expr*>();
+    return E && isa<StringLiteral>(E) && LV.getLValueOffset().isZero();
 }
+
 
 /// EvaluateBuiltinConstantP - Evaluate __builtin_constant_p as similarly to
 /// GCC as we can manage.

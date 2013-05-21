@@ -50,7 +50,7 @@ namespace {
     /// avoids constructing the type more than once if it's used more than once.
     class LazyRuntimeFunction {
 		CodeGenModule *CGM;
-		std::vector<const llvm::Type*> ArgTys;
+		std::vector<llvm::Type*> ArgTys;
 		const char *FunctionName;
 		llvm::Constant *Function;
 	public:
@@ -63,14 +63,14 @@ namespace {
 		/// of the arguments.
 		END_WITH_NULL
 		void init(CodeGenModule *Mod, const char *name,
-				  const llvm::Type *RetTy, ...) {
+				  llvm::Type *RetTy, ...) {
 			CGM =Mod;
 			FunctionName = name;
 			Function = 0;
 			ArgTys.clear();
 			va_list Args;
 			va_start(Args, RetTy);
-			while (const llvm::Type *ArgTy = va_arg(Args, const llvm::Type*))
+			while (llvm::Type *ArgTy = va_arg(Args, llvm::Type*))
 				ArgTys.push_back(ArgTy);
 			va_end(Args);
 			// Push the return type on at the end so we can pop it off easily
@@ -82,7 +82,7 @@ namespace {
 			if (!Function) {
 				if (0 == FunctionName) return 0;
 				// We put the return type on the end of the vector, so pop it back off
-				const llvm::Type *RetTy = ArgTys.back();
+				llvm::Type *RetTy = ArgTys.back();
 				ArgTys.pop_back();
 				llvm::FunctionType *FTy = llvm::FunctionType::get(RetTy, ArgTys, false);
 				Function =
@@ -111,62 +111,62 @@ namespace {
         llvm::Module &TheModule;
         /// strut objc_super.  Used for sending messages to super.  This structure
         /// contains the receiver (object) and the expected class.
-        const llvm::StructType *ObjCSuperTy;
+        llvm::StructType *ObjCSuperTy;
         /// struct objc_super*.  The type of the argument to the superclass message
         /// lookup functions.  
-        const llvm::PointerType *PtrToObjCSuperTy;
+        llvm::PointerType *PtrToObjCSuperTy;
         /// LLVM type for selectors.  Opaque pointer (i8*) unless a header declaring
         /// SEL is included in a header somewhere, in which case it will be whatever
         /// type is declared in that header, most likely {i8*, i8*}.
-        const llvm::PointerType *SelectorTy;
+        llvm::PointerType *SelectorTy;
         /// LLVM i8 type.  Cached here to avoid repeatedly getting it in all of the
         /// places where it's used
-        const llvm::IntegerType *Int8Ty;
+        llvm::IntegerType *Int8Ty;
         /// Pointer to i8 - LLVM type of char*, for all of the places where the
         /// runtime needs to deal with C strings.
-        const llvm::PointerType *PtrToInt8Ty;
+        llvm::PointerType *PtrToInt8Ty;
         
         /// CacheTy - LLVM type for struct objc_cache.
-        const llvm::Type *CacheTy;
+        llvm::Type *CacheTy;
         /// CachePtrTy - LLVM type for struct objc_cache *.
-        const llvm::Type *CachePtrTy;
+        llvm::Type *CachePtrTy;
         
         /// Instance Method Pointer type.  This is a pointer to a function that takes,
         /// at a minimum, an object and a selector, and is the generic type for
         /// Objective-C methods.  Due to differences between variadic / non-variadic
         /// calling conventions, it must always be cast to the correct type before
         /// actually being used.
-        const llvm::PointerType *IMPTy;
+        llvm::PointerType *IMPTy;
         /// Type of an untyped Objective-C object.  Clang treats id as a built-in type
         /// when compiling Objective-C code, so this may be an opaque pointer (i8*),
         /// but if the runtime header declaring it is included then it may be a
         /// pointer to a structure.
-        const llvm::PointerType *IdTy;
+        llvm::PointerType *IdTy;
         /// Pointer to a pointer to an Objective-C object.  Used in the new ABI
         /// message lookup function and some GC-related functions.
-        const llvm::PointerType *PtrToIdTy;
+        llvm::PointerType *PtrToIdTy;
         /// The clang type of id.  Used when using the clang CGCall infrastructure to
         /// call Objective-C methods.
         CanQualType ASTIdTy;
         /// LLVM type for C int type.
-        const llvm::IntegerType *IntTy;
+        llvm::IntegerType *IntTy;
         /// LLVM type for an opaque pointer.  This is identical to PtrToInt8Ty, but is
         /// used in the code to document the difference between i8* meaning a pointer
         /// to a C string and i8* meaning a pointer to some opaque type.
-        const llvm::PointerType *PtrTy;
+        llvm::PointerType *PtrTy;
         /// LLVM type for C long type.  The runtime uses this in a lot of places where
         /// it should be using intptr_t, but we can't fix this without breaking
         /// compatibility with GCC...
-        const llvm::IntegerType *LongTy;
+        llvm::IntegerType *LongTy;
         /// LLVM type for C size_t.  Used in various runtime data structures.
-        const llvm::IntegerType *SizeTy;
+        llvm::IntegerType *SizeTy;
         /// LLVM type for C ptrdiff_t.  Mainly used in property accessor functions.
-        const llvm::IntegerType *PtrDiffTy;
+        llvm::IntegerType *PtrDiffTy;
         /// LLVM type for C int*.  Used for GCC-ABI-compatible non-fragile instance
         /// variables.
-        const llvm::PointerType *PtrToIntTy;
+        llvm::PointerType *PtrToIntTy;
         /// LLVM type for Objective-C BOOL type.
-        const llvm::Type *BoolTy;
+        llvm::Type *BoolTy;
         /// Metadata kind used to tie method lookups to message sends.  The GNUstep
         /// runtime provides some LLVM passes that can use this to do things like
         /// automatic IMP caching and speculative inlining.
@@ -197,7 +197,7 @@ namespace {
         /// Generates a global structure, initialized by the elements in the vector.
         /// The element types must match the types of the structure elements in the
         /// first argument.
-        llvm::GlobalVariable *MakeGlobal(const llvm::StructType *Ty,
+        llvm::GlobalVariable *MakeGlobal(llvm::StructType *Ty,
                                          std::vector<llvm::Constant*> &V,
                                          llvm::StringRef Name="",
                                          llvm::GlobalValue::LinkageTypes linkage
@@ -209,7 +209,7 @@ namespace {
         /// Generates a global array.  The vector must contain the same number of
         /// elements that the array type declares, of the type specified as the array
         /// element type.
-        llvm::GlobalVariable *MakeGlobal(const llvm::ArrayType *Ty,
+        llvm::GlobalVariable *MakeGlobal(llvm::ArrayType *Ty,
                                          std::vector<llvm::Constant*> &V,
                                          llvm::StringRef Name="",
                                          llvm::GlobalValue::LinkageTypes linkage
@@ -220,7 +220,7 @@ namespace {
         }
         /// Generates a global array, inferring the array type from the specified
         /// element type and the size of the initialiser.  
-        llvm::GlobalVariable *MakeGlobalArray(const llvm::Type *Ty,
+        llvm::GlobalVariable *MakeGlobalArray(llvm::Type *Ty,
                                               std::vector<llvm::Constant*> &V,
                                               llvm::StringRef Name="",
                                               llvm::GlobalValue::LinkageTypes linkage
@@ -231,7 +231,7 @@ namespace {
         /// Ensures that the value has the required type, by inserting a bitcast if
         /// required.  This function lets us avoid inserting bitcasts that are
         /// redundant.
-        llvm::Value* EnforceType(CGBuilderTy B, llvm::Value *V, const llvm::Type *Ty){
+        llvm::Value* EnforceType(CGBuilderTy B, llvm::Value *V, llvm::Type *Ty){
             if (V->getType() == Ty) return V;
             return B.CreateBitCast(V, Ty);
         }
@@ -419,7 +419,7 @@ namespace {
             CGBuilderTy &Builder = CGF.Builder;
             llvm::Value *lookupArgs[] = {EnforceType(Builder, ObjCSuper,
                                                      PtrToObjCSuperTy), cmd};
-            return Builder.CreateCall(MsgLookupSuperFn, lookupArgs, lookupArgs+2);
+            return Builder.CreateCall(MsgLookupSuperFn, lookupArgs);
         }    public:
         CGObjCCocotron(CodeGenModule &cgm);
         
