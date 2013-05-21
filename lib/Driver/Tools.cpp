@@ -3528,16 +3528,26 @@ void ClangAs::AddX86TargetArgs(const ArgList &Args,
 ObjCRuntime Clang::AddObjCRuntimeArgs(const ArgList &args,
                                       ArgStringList &cmdArgs,
                                       RewriteKind rewriteKind) const {
+                                      
+  if (args.getLastArg(options::OPT_fcocotron_runtime)) {
+  	//printf("Cocotron runtime 1.0\n");
+  	ObjCRuntime runtime;
+    runtime = ObjCRuntime(ObjCRuntime::Cocotron, VersionTuple(1,0));
+    return runtime;
+  }                
+                   
   // Look for the controlling runtime option.
-  Arg *runtimeArg = args.getLastArg(options::OPT_fnext_runtime,
-                                    options::OPT_fgnu_runtime,
-                                    options::OPT_fobjc_runtime_EQ);
+    Arg *runtimeArg = args.getLastArg(options::OPT_fcocotron_runtime,
+                                      options::OPT_fnext_runtime,
+                                      options::OPT_fgnu_runtime,
+                                      options::OPT_fobjc_runtime_EQ);
 
   // Just forward -fobjc-runtime= to the frontend.  This supercedes
   // options about fragility.
   if (runtimeArg &&
       runtimeArg->getOption().matches(options::OPT_fobjc_runtime_EQ)) {
     ObjCRuntime runtime;
+      printf ("DEBUG--AddObjCRuntimeArgs: OPT_fobjc_runtime_EQ\n");
     StringRef value = runtimeArg->getValue();
     if (runtime.tryParse(value)) {
       getToolChain().getDriver().Diag(diag::err_drv_unknown_objc_runtime)
@@ -3630,6 +3640,9 @@ ObjCRuntime Clang::AddObjCRuntimeArgs(const ArgList &args,
     } else {
       runtime = ObjCRuntime(ObjCRuntime::MacOSX, VersionTuple());
     }
+  // -fcocotron-runtime
+  } else if (runtimeArg->getOption().matches(options::OPT_fcocotron_runtime)) {
+      runtime = ObjCRuntime(ObjCRuntime::Cocotron, VersionTuple(1,0));
 
   // -fgnu-runtime
   } else {

@@ -1135,6 +1135,7 @@ static void ParseLangArgs(LangOptions &Opts, ArgList &Args, InputKind IK,
   if (Opts.ObjC1) {
     if (Arg *arg = Args.getLastArg(OPT_fobjc_runtime_EQ)) {
       StringRef value = arg->getValue();
+        printf ("DEBUG--CompilerInvocation: OPT_fobjc_runtime_EQ\n");
       if (Opts.ObjCRuntime.tryParse(value))
         Diags.Report(diag::err_drv_unknown_objc_runtime) << value;
     }

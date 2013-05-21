@@ -160,6 +160,8 @@ void CodeGenModule::createObjCRuntime() {
   case ObjCRuntime::iOS:
     ObjCRuntime = CreateMacObjCRuntime(*this);
     return;
+  case ObjCRuntime::Cocotron:
+    ObjCRuntime = CreateCocotronObjCRuntime(*this);
   }
   llvm_unreachable("bad runtime kind");
 }

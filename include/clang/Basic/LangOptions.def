@@ -153,6 +153,8 @@ ENUM_LANGOPT(TypeVisibilityMode, Visibility, 3, DefaultVisibility,
              "type symbol visibility")
 ENUM_LANGOPT(StackProtector, StackProtectorMode, 2, SSPOff, 
              "stack protector mode")
+//ENUM_LANGOPT(ObjCRuntime, ObjCRuntimeMode, 2, NeXT,
+//             "Objective-C runtime mode")
 ENUM_LANGOPT(SignedOverflowBehavior, SignedOverflowBehaviorTy, 2, SOB_Undefined,
              "signed integer overflow handling")
 
@@ -176,4 +178,3 @@ BENIGN_LANGOPT(RetainCommentsFromSystemHeaders, 1, 0, "retain documentation comm
 #undef BENIGN_LANGOPT
 #undef ENUM_LANGOPT
 #undef BENIGN_ENUM_LANGOPT
-

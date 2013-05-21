@@ -293,7 +293,9 @@ public:
 /// Creates an instance of an Objective-C runtime class.
 //TODO: This should include some way of selecting which runtime to target.
 CGObjCRuntime *CreateGNUObjCRuntime(CodeGenModule &CGM);
+CGObjCRuntime *CreateCocotronObjCRuntime(CodeGenModule &CGM);
 CGObjCRuntime *CreateMacObjCRuntime(CodeGenModule &CGM);
+CGObjCRuntime *CreateCocotronObjCRuntime(CodeGenModule &CGM);
 }
 }
 #endif

@@ -297,6 +297,7 @@ int Compilation::ExecuteCommand(const Command &C,
                                        /*secondsToWait*/0, /*memoryLimit*/0,
                                        &Error, &ExecutionFailed);
   if (!Error.empty()) {
+    printf("ExecuteCommand: Error executing Prog: '%s'\n", C.getExecutable());
     assert(Res && "Error string set with 0 result code!");
     getDriver().Diag(clang::diag::err_drv_command_failure) << Error;
   }

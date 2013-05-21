@@ -5053,7 +5053,7 @@ static void EncodeBitField(const ASTContext *Ctx, std::string& S,
   // bitfield, then the size in bits.  For example, in this structure:
   //
   // struct
-  // {
+  // {setObjCFastEnumerationStateType
   //    int integer;
   //    int flags:2;
   // };

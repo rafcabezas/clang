@@ -387,6 +387,9 @@ def fsjlj_exceptions : Flag<["-"], "fsjlj-exceptions">,
   HelpText<"Use SjLj style exceptions">;
 def fhidden_weak_vtables : Flag<["-"], "fhidden-weak-vtables">,
   HelpText<"Generate weak vtables and RTTI with hidden visibility">;
+//def fcocotron_runtime : Flag<["-"], "cocotron-runtime">,
+//  HelpText<"Generate output compatible with the Cocotron Objective-C runtime">;
+
 def main_file_name : Separate<["-"], "main-file-name">,
   HelpText<"Main file name to use for debug info">;
 def split_dwarf_file : Separate<["-"], "split-dwarf-file">,

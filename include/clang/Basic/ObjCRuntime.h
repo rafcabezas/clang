@@ -49,7 +49,10 @@ public:
     GNUstep,
 
     /// 'objfw' is the Objective-C runtime included in ObjFW
-    ObjFW
+    ObjFW,
+    
+    /// 'cocotron' is the Objective-C runtime included in Cocotron
+    Cocotron
   };
 
 private:
@@ -81,6 +84,7 @@ public:
     case GNUstep: return true;
     case ObjFW: return false;
     case iOS: return true;
+    case Cocotron: return true;
     }
     llvm_unreachable("bad kind");
   }
@@ -110,6 +114,7 @@ public:
     case FragileMacOSX:
     case MacOSX:
     case iOS:
+    case Cocotron:
       return false;
     case GCC:
     case GNUstep:
@@ -135,6 +140,7 @@ public:
     case GCC: return false;
     case GNUstep: return true;
     case ObjFW: return true;
+    case Cocotron: return true;
     }
     llvm_unreachable("bad kind");
   }
@@ -153,6 +159,7 @@ public:
     case GCC: return false;
     case GNUstep: return getVersion() >= VersionTuple(1, 6);
     case ObjFW: return true;
+    case Cocotron: return true;
     }
     llvm_unreachable("bad kind");
   }
@@ -166,7 +173,8 @@ public:
         return (getVersion() >= VersionTuple(6));
       case GNUstep:
         return getVersion() >= VersionTuple(1, 7);
-    
+    case Cocotron:
+        return false;
       default:
       return false;
     }
@@ -200,6 +208,7 @@ public:
     case GCC: return true;
     case GNUstep: return true;
     case ObjFW: return true;
+    case Cocotron: return true;
     }
     llvm_unreachable("bad kind");
   }
@@ -222,6 +231,7 @@ public:
     case iOS:
     case GNUstep:
     case ObjFW:
+    case Cocotron:
       return false;
     }
     llvm_unreachable("bad kind");
@@ -244,6 +254,7 @@ public:
     case GCC: return false;
     case GNUstep: return false;
     case ObjFW: return false;
+    case Cocotron: return false;
     }
     llvm_unreachable("bad kind");
   }
@@ -257,6 +268,7 @@ public:
     case GCC: return true;
     case GNUstep: return true;
     case ObjFW: return true;
+    case Cocotron: return true;
     }
     llvm_unreachable("bad kind");
   }
@@ -270,6 +282,7 @@ public:
     case GCC: return true;
     case GNUstep: return true;
     case ObjFW: return true;
+    case Cocotron: return true;
     }
     llvm_unreachable("bad kind");
   }
@@ -279,6 +292,7 @@ public:
     case FragileMacOSX:
     case MacOSX:
     case iOS:
+    case Cocotron:
       return true;
     case GNUstep:
       return getVersion() >= VersionTuple(1, 7);

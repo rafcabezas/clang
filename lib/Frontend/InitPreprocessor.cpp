@@ -394,6 +394,9 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
     if (LangOpts.ObjCRuntime.isNeXTFamily())
       Builder.defineMacro("__NEXT_RUNTIME__");
 
+    if (LangOpts.ObjCRuntime.getKind() == ObjCRuntime::Cocotron)
+      Builder.defineMacro("__COCOTRON_RUNTIME__");
+
     Builder.defineMacro("IBOutlet", "__attribute__((iboutlet))");
     Builder.defineMacro("IBOutletCollection(ClassName)",
                         "__attribute__((iboutletcollection(ClassName)))");

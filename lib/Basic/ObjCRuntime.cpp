@@ -33,6 +33,7 @@ raw_ostream &clang::operator<<(raw_ostream &out, const ObjCRuntime &value) {
   case ObjCRuntime::GNUstep: out << "gnustep"; break;
   case ObjCRuntime::GCC: out << "gcc"; break;
   case ObjCRuntime::ObjFW: out << "objfw"; break;
+  case ObjCRuntime::Cocotron: out << "cocotron"; break;
   }
   if (value.getVersion() > VersionTuple(0)) {
     out << '-' << value.getVersion();
@@ -62,6 +63,8 @@ bool ObjCRuntime::tryParse(StringRef input) {
     kind = ObjCRuntime::FragileMacOSX;
   } else if (runtimeName == "ios") {
     kind = ObjCRuntime::iOS;
+  } else if (runtimeName == "cocotron") {
+    kind = ObjCRuntime::Cocotron;
   } else if (runtimeName == "gnustep") {
     // If no version is specified then default to the most recent one that we
     // know about.

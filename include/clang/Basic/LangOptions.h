@@ -59,6 +59,7 @@ public:
   
   enum GCMode { NonGC, GCOnly, HybridGC };
   enum StackProtectorMode { SSPOff, SSPOn, SSPReq };
+  //enum ObjCRuntimeMode { NeXT, GNU, Cocotron };
   
   enum SignedOverflowBehaviorTy {
     SOB_Undefined,  // Default C standard behavior.
