@@ -165,6 +165,8 @@ protected:
   /// runtime provides some LLVM passes that can use this to do things like
   /// automatic IMP caching and speculative inlining.
   unsigned msgSendMDKind;
+  // Cocotron Runtime doesn't directly support NonFragileABI ATM. Sets to FALSE.
+  bool f_runtime_supports_nfabi;
   /// Helper function that generates a constant string and returns a pointer to
   /// the start of the string.  The result of this function can be used anywhere
   /// where the C code specifies const char*.  
@@ -536,6 +538,7 @@ protected:
       // IMP objc_msg_lookup_super(struct objc_super*, SEL);
       MsgLookupSuperFn.init(&CGM, "objc_msg_lookup_super", IMPTy,
               PtrToObjCSuperTy, SelectorTy, NULL);
+      f_runtime_supports_nfabi = true;
     }
 };
 /// Class used when targeting the new GNUstep runtime ABI.
@@ -613,6 +616,7 @@ class CGObjCGNUstep : public CGObjCGNU {
       // Slot_t objc_msg_lookup_super(struct objc_super*, SEL);
       SlotLookupSuperFn.init(&CGM, "objc_slot_lookup_super", SlotTy,
               PtrToObjCSuperTy, SelectorTy, NULL);
+      f_runtime_supports_nfabi = true;
       // If we're in ObjC++ mode, then we want to make 
       if (CGM.getLangOptions().CPlusPlus) {
         const llvm::Type *VoidTy = llvm::Type::getVoidTy(VMContext);
@@ -1841,7 +1845,7 @@ void CGObjCGNU::GenerateClass(const ObjCImplementationDecl *OID) {
     Context.getASTObjCInterfaceLayout(SuperClassDecl).getSize().getQuantity();
   // For non-fragile ivars, set the instance size to 0 - {the size of just this
   // class}.  The runtime will then set this to the correct value on load.
-  if (CGM.getContext().getLangOptions().ObjCNonFragileABI) {
+  if (CGM.getContext().getLangOptions().ObjCNonFragileABI && f_runtime_supports_nfabi) {
     instanceSize = 0 - (instanceSize - superInstanceSize);
   }
 
@@ -1860,7 +1864,7 @@ void CGObjCGNU::GenerateClass(const ObjCImplementationDecl *OID) {
       // Get the offset
       uint64_t BaseOffset = ComputeIvarBaseOffset(CGM, OID, IVD);
       uint64_t Offset = BaseOffset;
-      if (CGM.getContext().getLangOptions().ObjCNonFragileABI) {
+      if (CGM.getContext().getLangOptions().ObjCNonFragileABI && f_runtime_supports_nfabi) {
         Offset = BaseOffset - superInstanceSize;
       }
       IvarOffsets.push_back(
