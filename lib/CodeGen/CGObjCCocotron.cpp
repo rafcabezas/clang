@@ -110,10 +110,6 @@ public:
 		virtual llvm::Constant *GenerateConstantString(const StringLiteral *);
 		virtual void GenerateClass(const ObjCImplementationDecl *ClassDecl);
 		virtual llvm::Function *ModuleInitFunction();
-		virtual llvm::Value *EmitIvarOffset(CodeGenFunction &CGF,
-																				const ObjCInterfaceDecl *Interface,
-																				const ObjCIvarDecl *Ivar);
-
 };
 
 #else // Class Implementation
@@ -563,7 +559,7 @@ llvm::Function *CGObjCCocotron::ModuleInitFunction() {
     GenerateProtocolHolderCategory();
     
     // Name the ObjC types to make the IR a bit easier to read
-    TheModule.addTypeName(".objc_selector", PtrToInt8Ty);
+    TheModule.addTypeName(".objc_selector", PtrToInt8Ty); //Cocotron PtrToInt8Ty
     TheModule.addTypeName(".objc_id", IdTy);
     TheModule.addTypeName(".objc_imp", IMPTy);
     
@@ -599,7 +595,7 @@ llvm::Function *CGObjCCocotron::ModuleInitFunction() {
     // Array of classes, categories, and constant objects
     llvm::ArrayType *ClassListTy = llvm::ArrayType::get(PtrToInt8Ty,
                                                         Classes.size() + Categories.size()  + 2);
-    llvm::StructType *SymTabTy = llvm::StructType::get(LongTy, PtrToInt8Ty,
+    llvm::StructType *SymTabTy = llvm::StructType::get(LongTy, PtrToInt8Ty, //Cocotron PtrToInt8Ty
                                                        llvm::Type::getInt16Ty(VMContext),
                                                        llvm::Type::getInt16Ty(VMContext),
                                                        ClassListTy, NULL);
@@ -613,7 +609,25 @@ llvm::Function *CGObjCCocotron::ModuleInitFunction() {
         
         std::string SelNameStr = iter->first.getAsString();
         llvm::Constant *SelName = ExportUniqueString(SelNameStr, ".objc_sel_name");
-        Selectors.push_back(SelName);
+        Selectors.push_back(SelName); //Cocotron like this
+	/*
+	llvm::SmallVectorImpl<TypedSelector> &Types = iter->second;
+	    for (llvm::SmallVectorImpl<TypedSelector>::iterator i = Types.begin(),
+        	e = Types.end() ; i!=e ; i++) {
+
+	      llvm::Constant *SelectorTypeEncoding = NULLPtr;
+	      if (!i->first.empty())
+        	SelectorTypeEncoding = MakeConstantString(i->first, ".objc_sel_types");
+
+	      Elements.push_back(SelName);
+	      Elements.push_back(SelectorTypeEncoding);
+	      Selectors.push_back(llvm::ConstantStruct::get(SelStructTy, Elements));
+	      Elements.clear();
+
+	      // Store the selector alias for later replacement
+	      SelectorAliases.push_back(i->second);
+	   }
+	*/
         //SelectorAliases.push_back(iter->second);
     }
     
@@ -627,11 +641,11 @@ llvm::Function *CGObjCCocotron::ModuleInitFunction() {
     Elements.push_back(llvm::ConstantInt::get(LongTy, SelectorCount));
     
     
-    llvm::Constant *SelectorList = MakeGlobalArray(PtrToInt8Ty, Selectors,
+    llvm::Constant *SelectorList = MakeGlobalArray(PtrToInt8Ty, Selectors, //Cocotron PtrToInt8Ty
                                                    ".objc_selector_list");
     
     Elements.push_back(llvm::ConstantExpr::getBitCast(SelectorList,
-                                                      PtrToInt8Ty));
+                                                      PtrToInt8Ty)); //Cocotron PtrToInt8Ty
     
     // Now that all of the static selectors exist, create pointers to them.
     for (unsigned int i=0 ; i<SelectorCount ; i++) {
@@ -644,7 +658,7 @@ llvm::Function *CGObjCCocotron::ModuleInitFunction() {
         
         // If selectors are defined as an opaque type, cast the pointer to this
         // type.
-        SelPtr = llvm::ConstantExpr::getBitCast(SelPtr, PtrToInt8Ty);
+        SelPtr = llvm::ConstantExpr::getBitCast(SelPtr, PtrToInt8Ty); //Cocotron PtrToInt8Ty
         
         SelectorAliases[i]->replaceAllUsesWith(SelPtr);
         
@@ -747,19 +761,6 @@ llvm::Function *CGObjCCocotron::ModuleInitFunction() {
 
 
 
-llvm::Value *CGObjCCocotron::EmitIvarOffset(CodeGenFunction &CGF,
-                                       const ObjCInterfaceDecl *Interface,
-                                       const ObjCIvarDecl *Ivar) {
-    if (CGM.getLangOptions().ObjCNonFragileABI && !CGM.getLangOptions().ObjCNonFragileABI2) {
-        Interface = FindIvarInterface(CGM.getContext(), Interface, Ivar);
-        return CGF.Builder.CreateZExtOrBitCast(
-                                               CGF.Builder.CreateLoad(CGF.Builder.CreateLoad(
-                                                                                             ObjCIvarOffsetVariable(Interface, Ivar), false, "ivar")),
-                                               PtrDiffTy);
-    }
-    uint64_t Offset = ComputeIvarBaseOffset(CGF.CGM, Interface, Ivar);
-    return llvm::ConstantInt::get(PtrDiffTy, Offset, "ivar");
-}
 
 CGObjCRuntime *
 clang::CodeGen::CreateCocotronObjCRuntime(CodeGenModule &CGM) {
