@@ -100,11 +100,6 @@ protected:
                                      const std::string &TypeEncoding, bool lval);
     
 public:
-    virtual llvm::Value *GetClass(CGBuilderTy &Builder,
-                                  const ObjCInterfaceDecl *OID);
-    
-    
-public:
     CGObjCCocotron(CodeGenModule &Mod) : CGObjCGNU(Mod, 0, 0) {
         // IMP objc_msg_lookup(id, SEL);
         MsgLookupFn.init(&CGM, "objc_msg_lookup", IMPTy, IdTy, SelectorTy, NULL);
@@ -135,23 +130,6 @@ public:
 
 #else // Class Implementation
 
-// This has to perform the lookup every time, since posing and related
-// techniques can modify the name -> class mapping.
-llvm::Value *CGObjCCocotron::GetClass(CGBuilderTy &Builder,
-                                      const ObjCInterfaceDecl *OID) {
-    llvm::Value *ClassName = CGM.GetAddrOfConstantCString(OID->getNameAsString());
-    // With the incompatible ABI, this will need to be replaced with a direct
-    // reference to the class symbol.  For the compatible nonfragile ABI we are
-    // still performing this lookup at run time but emitting the symbol for the
-    // class externally so that we can make the switch later.
-    EmitClassRef(OID->getNameAsString());
-    ClassName = Builder.CreateStructGEP(ClassName, 0);
-    
-    llvm::Constant *ClassLookupFn =
-	CGM.CreateRuntimeFunction(llvm::FunctionType::get(IdTy, PtrToInt8Ty, true),
-                              "objc_lookUpClass");
-    return Builder.CreateCall(ClassLookupFn, ClassName);
-}
 
 llvm::Value *CGObjCCocotron::GetSelector(CGBuilderTy &Builder, Selector Sel,
                                          const std::string &TypeEncoding, bool lval) {
