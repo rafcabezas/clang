@@ -235,7 +235,7 @@ protected:
   llvm::Constant *NULLPtr;
   /// LLVM context.
   llvm::LLVMContext &VMContext;
-private:
+protected:
   /// Placeholder for the class.  Lots of things refer to the class before we've
   /// actually emitted it.  We use this alias as a placeholder, and then replace
   /// it with a pointer to the class structure before finally emitting the
@@ -300,7 +300,7 @@ protected:
   /// Function called when exiting an @synchronize block.  Releases the lock.
   LazyRuntimeFunction SyncExitFn;
 
-private:
+protected:
 
   /// Function called if fast enumeration detects that the collection is
   /// modified during the update.
@@ -326,7 +326,7 @@ private:
   /// Objective-C 1 property structures when targeting the GCC runtime or it
   /// will abort.
   const int ProtocolVersion;
-private:
+protected:
   /// Generates an instance variable list structure.  This is a structure
   /// containing a size and an array of structures containing instance variable
   /// metadata.  This is used purely for introspection in the fragile ABI.  In
@@ -364,7 +364,7 @@ private:
   /// of the protocols without changing the ABI.
   void GenerateProtocolHolderCategory(void);
   /// Generates a class structure.
-  llvm::Constant *GenerateClassStructure(
+  virtual llvm::Constant *GenerateClassStructure(
       llvm::Constant *MetaClass,
       llvm::Constant *SuperClass,
       unsigned info,
@@ -384,14 +384,14 @@ private:
       const llvm::SmallVectorImpl<llvm::Constant *>  &MethodTypes);
   /// Returns a selector with the specified type encoding.  An empty string is
   /// used to return an untyped selector (with the types field set to NULL).
-  llvm::Value *GetSelector(CGBuilderTy &Builder, Selector Sel,
+  virtual llvm::Value *GetSelector(CGBuilderTy &Builder, Selector Sel,
     const std::string &TypeEncoding, bool lval);
   /// Returns the variable used to store the offset of an instance variable.
   llvm::GlobalVariable *ObjCIvarOffsetVariable(const ObjCInterfaceDecl *ID,
       const ObjCIvarDecl *Ivar);
   /// Emits a reference to a class.  This allows the linker to object if there
   /// is no class of the matching name.
-  void EmitClassRef(const std::string &className);
+  virtual void EmitClassRef(const std::string &className);
 protected:
   /// Looks up the method for sending a message to the specified object.  This
   /// mechanism differs between the GCC and GNU runtimes, so this method must be
@@ -625,6 +625,10 @@ class CGObjCGNUstep : public CGObjCGNU {
       }
     }
 };
+
+#define __INCLUDED_FROM_ANOTHER_MODULE__
+#define __RUNTIME_CLASS_DECLARATION__
+#include "CGObjCCocotron.cpp"
 
 } // end anonymous namespace
 
@@ -2435,3 +2439,6 @@ clang::CodeGen::CreateGNUObjCRuntime(CodeGenModule &CGM) {
     return new CGObjCGNUstep(CGM);
   return new CGObjCGCC(CGM);
 }
+
+#undef __RUNTIME_CLASS_DECLARATION__
+#include "CGObjCCocotron.cpp"
