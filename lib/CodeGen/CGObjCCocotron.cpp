@@ -22,23 +22,13 @@
 /// Cocotron Objective-C runtime code generation.  This class implements the parts of
 /// Objective-C support that are specific to the Cocotron stock runtime
 class CGObjCCocotron : public CGObjCGNU {
-protected:
+private:
 		/// CacheTy - LLVM type for struct objc_cache.
 		const llvm::Type *CacheTy;
 		/// CachePtrTy - LLVM type for struct objc_cache *.
 		const llvm::Type *CachePtrTy;
-
-		/// Type of the selector map.  This is roughly equivalent to the structure
-		/// used in the GNUstep runtime, which maintains a list of all of the valid
-		/// types for a selector in a table.
-		typedef llvm::DenseMap<Selector, llvm::GlobalAlias*> SelectorMap;
-		/// A map from selectors to selector types.  This allows us to emit all
-		/// selectors of the same name and type together.
-		SelectorMap SelectorTable;
 		
 private:
-
-		
 		/// The GCC ABI message lookup function.  Returns an IMP pointing to the
 		/// method implementation for this message.
 		LazyRuntimeFunction MsgLookupFn;
@@ -51,25 +41,25 @@ private:
 protected:
 		/// Looks up the method for sending a message to the specified object.
 		virtual llvm::Value *LookupIMP(CodeGenFunction &CGF,
-																	 llvm::Value *&Receiver,
-																	 llvm::Value *cmd,
-																	 llvm::MDNode *node) {
+															 llvm::Value *&Receiver,
+															 llvm::Value *cmd,
+															 llvm::MDNode *node) {
 				CGBuilderTy &Builder = CGF.Builder;
 				llvm::Value *imp = Builder.CreateCall2(MsgLookupFn, 
-																							 EnforceType(Builder, Receiver, IdTy),
-																							 EnforceType(Builder, cmd, SelectorTy));
+							EnforceType(Builder, Receiver, IdTy),
+							EnforceType(Builder, cmd, SelectorTy));
 				cast<llvm::CallInst>(imp)->setMetadata(msgSendMDKind, node);
 				return imp;
 		}
 		/// Looks up the method for sending a message to a superclass.
 		virtual llvm::Value *LookupIMPSuper(CodeGenFunction &CGF,
-																				llvm::Value *ObjCSuper,
-																				llvm::Value *cmd) {
+                                      llvm::Value *ObjCSuper,
+                                      llvm::Value *cmd) {
 				CGBuilderTy &Builder = CGF.Builder;
 				llvm::Value *lookupArgs[] = {EnforceType(Builder, ObjCSuper,
-																								 PtrToObjCSuperTy), cmd};
+						PtrToObjCSuperTy), cmd};
 				return Builder.CreateCall(MsgLookupSuperFn, lookupArgs, lookupArgs+2);
-		}
+    }
 		
 protected:
 		/// Generates a class structure.
@@ -96,16 +86,12 @@ public:
 
 		    
 public:
-		//CGObjCCocotron(CodeGenModule &cgm, unsigned runtimeABIVersion,
-		//	unsigned protocolClassVersion);
-
 		CGObjCCocotron(CodeGenModule &Mod) : CGObjCGNU(Mod, 0, 0) {
-
 			// IMP objc_msg_lookup(id, SEL);
 			MsgLookupFn.init(&CGM, "objc_msg_lookup", IMPTy, IdTy, SelectorTy, NULL);
 			// IMP objc_msg_lookup_super(struct objc_super*, SEL);
 			MsgLookupSuperFn.init(&CGM, "objc_msg_lookup_super", IMPTy,
-							PtrToObjCSuperTy, SelectorTy, NULL);
+								PtrToObjCSuperTy, SelectorTy, NULL);
 					
 			CacheTy = llvm::OpaqueType::get(VMContext);
 			CGM.getModule().addTypeName("struct._objc_cache", CacheTy);
@@ -115,7 +101,7 @@ public:
 			SelectorTy = PtrToInt8Ty;
 		}
 
-//these two are the exact same as the base class.. remove?		
+		//these two are the exact same as the base class.. remove?		
 		virtual llvm::Value *GetSelector(CGBuilderTy &Builder, Selector Sel,
 																		 bool lval = false);
 		virtual llvm::Value *GetSelector(CGBuilderTy &Builder, const ObjCMethodDecl
@@ -131,129 +117,6 @@ public:
 };
 
 #else // Class Implementation
-
-
-/*
-CGObjCCocotron::CGObjCCocotron(CodeGenModule &cgm, unsigned runtimeABIVersion,
-    unsigned protocolClassVersion)
-  : CGM(cgm), TheModule(CGM.getModule()), VMContext(cgm.getLLVMContext()),
-  ClassPtrAlias(0), MetaClassPtrAlias(0), RuntimeVersion(runtimeABIVersion),
-  ProtocolVersion(protocolClassVersion) {
-    
-    msgSendMDKind = VMContext.getMDKindID("GNUObjCMessageSend");
-    
-    CodeGenTypes &Types = CGM.getTypes();
-    IntTy = cast<llvm::IntegerType>(
-                                    Types.ConvertType(CGM.getContext().IntTy));
-    LongTy = cast<llvm::IntegerType>(
-                                     Types.ConvertType(CGM.getContext().LongTy));
-    SizeTy = cast<llvm::IntegerType>(
-                                     Types.ConvertType(CGM.getContext().getSizeType()));
-    PtrDiffTy = cast<llvm::IntegerType>(
-                                        Types.ConvertType(CGM.getContext().getPointerDiffType()));
-    BoolTy = CGM.getTypes().ConvertType(CGM.getContext().BoolTy);
-    
-    Int8Ty = llvm::Type::getInt8Ty(VMContext);
-    // C string type.  Used in lots of places.
-    PtrToInt8Ty = llvm::PointerType::getUnqual(Int8Ty);
-    
-    CacheTy = llvm::OpaqueType::get(VMContext);
-    CGM.getModule().addTypeName("struct._objc_cache", CacheTy);
-    CachePtrTy = llvm::PointerType::getUnqual(CacheTy);
-    
-    Zeros[0] = llvm::ConstantInt::get(LongTy, 0);
-    Zeros[1] = Zeros[0];
-    NULLPtr = llvm::ConstantPointerNull::get(PtrToInt8Ty);
-    // Get the selector Type.
-    QualType selTy = CGM.getContext().getObjCSelType();
-    SelectorTy = PtrToInt8Ty;
-    
-    PtrToIntTy = llvm::PointerType::getUnqual(IntTy);
-    PtrTy = PtrToInt8Ty;
-    
-    // Object type
-    QualType UnqualIdTy = CGM.getContext().getObjCIdType();
-    ASTIdTy = CanQualType();
-    if (UnqualIdTy != QualType()) {
-        ASTIdTy = CGM.getContext().getCanonicalType(UnqualIdTy);
-        IdTy = cast<llvm::PointerType>(CGM.getTypes().ConvertType(ASTIdTy));
-    } else {
-        IdTy = PtrToInt8Ty;
-    }
-    PtrToIdTy = llvm::PointerType::getUnqual(IdTy);
-    
-    ObjCSuperTy = llvm::StructType::get(IdTy, IdTy, NULL);
-    PtrToObjCSuperTy = llvm::PointerType::getUnqual(ObjCSuperTy);
-    
-    const llvm::Type *VoidTy = llvm::Type::getVoidTy(VMContext);
-    
-    // void objc_exception_throw(id);
-    ExceptionThrowFn.init(&CGM, "objc_exception_throw", VoidTy, IdTy, NULL);
-    ExceptionReThrowFn.init(&CGM, "objc_exception_throw", VoidTy, IdTy, NULL);
-    // int objc_sync_enter(id);
-    SyncEnterFn.init(&CGM, "objc_sync_enter", IntTy, IdTy, NULL);
-    // int objc_sync_exit(id);
-    SyncExitFn.init(&CGM, "objc_sync_exit", IntTy, IdTy, NULL);
-    
-    // void objc_enumerationMutation (id)
-    EnumerationMutationFn.init(&CGM, "objc_enumerationMutation", VoidTy,
-                               IdTy, NULL);
-    
-    // id objc_getProperty(id, SEL, ptrdiff_t, BOOL)
-    GetPropertyFn.init(&CGM, "objc_getProperty", IdTy, IdTy, SelectorTy,
-                       PtrDiffTy, BoolTy, NULL);
-    // void objc_setProperty(id, SEL, ptrdiff_t, id, BOOL, BOOL)
-    SetPropertyFn.init(&CGM, "objc_setProperty", VoidTy, IdTy, SelectorTy,
-                       PtrDiffTy, IdTy, BoolTy, BoolTy, NULL);
-    // void objc_setPropertyStruct(void*, void*, ptrdiff_t, BOOL, BOOL)
-    GetStructPropertyFn.init(&CGM, "objc_getPropertyStruct", VoidTy, PtrTy, PtrTy, 
-                             PtrDiffTy, BoolTy, BoolTy, NULL);
-    // void objc_setPropertyStruct(void*, void*, ptrdiff_t, BOOL, BOOL)
-    SetStructPropertyFn.init(&CGM, "objc_setPropertyStruct", VoidTy, PtrTy, PtrTy, 
-                             PtrDiffTy, BoolTy, BoolTy, NULL);
-    
-    // IMP type
-	const llvm::Type *IMPArgs[] = { IdTy, SelectorTy };
-    IMPTy = llvm::PointerType::getUnqual(llvm::FunctionType::get(IdTy, IMPArgs,
-                                                                 true));
-    
-    // Don't bother initialising the GC stuff unless we're compiling in GC mode
-    if (CGM.getLangOptions().getGCMode() != LangOptions::NonGC) {		
-		// This is a bit of an hack.  We should sort this out by having a proper
-		// CGObjCGNUstep subclass for GC, but we may want to really support the old
-		// ABI and GC added in ObjectiveC2.framework, so we fudge it a bit for now
-		RuntimeVersion = 10;
-        // Get selectors needed in GC mode
-        RetainSel = GetNullarySelector("retain", CGM.getContext());
-        ReleaseSel = GetNullarySelector("release", CGM.getContext());
-        AutoreleaseSel = GetNullarySelector("autorelease", CGM.getContext());
-        
-        // Get functions needed in GC mode
-        
-        // id objc_assign_ivar(id, id, ptrdiff_t);
-        IvarAssignFn.init(&CGM, "objc_assign_ivar", IdTy, IdTy, IdTy, PtrDiffTy,
-                          NULL);
-        // id objc_assign_strongCast (id, id*)
-        StrongCastAssignFn.init(&CGM, "objc_assign_strongCast", IdTy, IdTy,
-                                PtrToIdTy, NULL);
-        // id objc_assign_global(id, id*);
-        GlobalAssignFn.init(&CGM, "objc_assign_global", IdTy, IdTy, PtrToIdTy,
-                            NULL);
-        // id objc_assign_weak(id, id*);
-        WeakAssignFn.init(&CGM, "objc_assign_weak", IdTy, IdTy, PtrToIdTy, NULL);
-        // id objc_read_weak(id*);
-        WeakReadFn.init(&CGM, "objc_read_weak", IdTy, PtrToIdTy, NULL);
-        // void *objc_memmove_collectable(void*, void *, size_t);
-        MemMoveFn.init(&CGM, "objc_memmove_collectable", PtrTy, PtrTy, PtrTy,
-                       SizeTy, NULL);
-    }
-    
-    MsgLookupFn.init(&CGM, "objc_msg_lookup", IMPTy, IdTy, SelectorTy, NULL);
-    // IMP objc_msg_lookup_super(struct objc_super*, SEL);
-    MsgLookupSuperFn.init(&CGM, "objc_msg_lookup_super", IMPTy,
-                          PtrToObjCSuperTy, SelectorTy, NULL);
-}
-*/
 
 // This has to perform the lookup every time, since posing and related
 // techniques can modify the name -> class mapping.
@@ -276,6 +139,7 @@ llvm::Value *CGObjCCocotron::GetClass(CGBuilderTy &Builder,
 llvm::Value *CGObjCCocotron::GetSelector(CGBuilderTy &Builder, Selector Sel,
 																const std::string &TypeEncoding, bool lval) {
 																
+    /* TODO FIX IT
     llvm::GlobalAlias *&SelValue =  SelectorTable[Sel];
     
     if (0 == SelValue) {
@@ -286,24 +150,42 @@ llvm::Value *CGObjCCocotron::GetSelector(CGBuilderTy &Builder, Selector Sel,
         
     }
     
-    //TODO FIX IT
-    
-    
-    
-    /*
      if (lval) {
      llvm::Value *tmp = Builder.CreateAlloca(SelValue->getType());
      Builder.CreateStore(SelValue, tmp);
      return tmp;
      }
      
-     
      return SelValue;
+     .
+     .
+     .
+     original:
+        llvm::SmallVector<TypedSelector, 2> &Types = SelectorTable[Sel];
+				llvm::GlobalAlias *SelValue = 0;
+
+				for (llvm::SmallVectorImpl<TypedSelector>::iterator i = Types.begin(),
+						e = Types.end() ; i!=e ; i++) {
+					if (i->first == TypeEncoding) {
+						SelValue = i->second;
+						break;
+					}
+				}
+				if (0 == SelValue) {
+					SelValue = new llvm::GlobalAlias(SelectorTy,
+																					 llvm::GlobalValue::PrivateLinkage,
+																					 ".objc_selector_"+Sel.getAsString(), NULL,
+																					 &TheModule);
+					Types.push_back(TypedSelector(TypeEncoding, SelValue));
+				}
+
+				if (lval) {
+					llvm::Value *tmp = Builder.CreateAlloca(SelValue->getType());
+					Builder.CreateStore(SelValue, tmp);
+					return tmp;
+				}
+				return SelValue;
      */
-    
-    
-    
-    
     
     llvm::Value *selectorString = CGM.GetAddrOfConstantCString(Sel.getAsString());
     selectorString = Builder.CreateStructGEP(selectorString, 0);
@@ -732,7 +614,7 @@ llvm::Function *CGObjCCocotron::ModuleInitFunction() {
         std::string SelNameStr = iter->first.getAsString();
         llvm::Constant *SelName = ExportUniqueString(SelNameStr, ".objc_sel_name");
         Selectors.push_back(SelName);
-        SelectorAliases.push_back(iter->second);
+        //SelectorAliases.push_back(iter->second);
     }
     
     unsigned SelectorCount = Selectors.size();
