@@ -15,7 +15,7 @@ namespace driver {
 
 class ObjCRuntime {
 public:
-  enum Kind { GNU, NeXT };
+  enum Kind { GNU, NeXT, Cocotron };
 private:
   unsigned RuntimeKind : 1;
 public:

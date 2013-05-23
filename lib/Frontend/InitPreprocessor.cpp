@@ -370,6 +370,9 @@ static void InitializePredefinedMacros(const TargetInfo &TI,
 
     if (LangOpts.NeXTRuntime)
       Builder.defineMacro("__NEXT_RUNTIME__");
+    
+    if (LangOpts.Cocotron)
+      Builder.defineMacro("__COCOTRON_RUNTIME__");
   }
 
   // darwin_constant_cfstrings controls this. This is also dependent

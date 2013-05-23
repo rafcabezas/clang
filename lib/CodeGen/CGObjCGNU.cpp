@@ -170,6 +170,8 @@ protected:
   /// runtime provides some LLVM passes that can use this to do things like
   /// automatic IMP caching and speculative inlining.
   unsigned msgSendMDKind;
+  // Cocotron Runtime doesn't directly support NonFragileABI ATM. Sets to FALSE.
+  bool f_runtime_supports_nfabi;
   /// Helper function that generates a constant string and returns a pointer to
   /// the start of the string.  The result of this function can be used anywhere
   /// where the C code specifies const char*.  
@@ -240,7 +242,7 @@ protected:
   llvm::Constant *NULLPtr;
   /// LLVM context.
   llvm::LLVMContext &VMContext;
-private:
+protected:
   /// Placeholder for the class.  Lots of things refer to the class before we've
   /// actually emitted it.  We use this alias as a placeholder, and then replace
   /// it with a pointer to the class structure before finally emitting the
@@ -305,7 +307,7 @@ protected:
   /// Function called when exiting an @synchronize block.  Releases the lock.
   LazyRuntimeFunction SyncExitFn;
 
-private:
+protected:
 
   /// Function called if fast enumeration detects that the collection is
   /// modified during the update.
@@ -331,7 +333,7 @@ private:
   /// Objective-C 1 property structures when targeting the GCC runtime or it
   /// will abort.
   const int ProtocolVersion;
-private:
+protected:
   /// Generates an instance variable list structure.  This is a structure
   /// containing a size and an array of structures containing instance variable
   /// metadata.  This is used purely for introspection in the fragile ABI.  In
@@ -369,7 +371,7 @@ private:
   /// of the protocols without changing the ABI.
   void GenerateProtocolHolderCategory(void);
   /// Generates a class structure.
-  llvm::Constant *GenerateClassStructure(
+  virtual llvm::Constant *GenerateClassStructure(
       llvm::Constant *MetaClass,
       llvm::Constant *SuperClass,
       unsigned info,
@@ -391,7 +393,7 @@ private:
       const SmallVectorImpl<llvm::Constant *>  &MethodTypes);
   /// Returns a selector with the specified type encoding.  An empty string is
   /// used to return an untyped selector (with the types field set to NULL).
-  llvm::Value *GetSelector(CGBuilderTy &Builder, Selector Sel,
+  virtual llvm::Value *GetSelector(CGBuilderTy &Builder, Selector Sel,
     const std::string &TypeEncoding, bool lval);
   /// Returns the variable used to store the offset of an instance variable.
   llvm::GlobalVariable *ObjCIvarOffsetVariable(const ObjCInterfaceDecl *ID,
@@ -560,6 +562,7 @@ protected:
       // IMP objc_msg_lookup_super(struct objc_super*, SEL);
       MsgLookupSuperFn.init(&CGM, "objc_msg_lookup_super", IMPTy,
               PtrToObjCSuperTy, SelectorTy, NULL);
+      f_runtime_supports_nfabi = true;
     }
 };
 /// Class used when targeting the new GNUstep runtime ABI.
@@ -637,6 +640,7 @@ class CGObjCGNUstep : public CGObjCGNU {
       // Slot_t objc_msg_lookup_super(struct objc_super*, SEL);
       SlotLookupSuperFn.init(&CGM, "objc_slot_lookup_super", SlotTy,
               PtrToObjCSuperTy, SelectorTy, NULL);
+      f_runtime_supports_nfabi = true;
       // If we're in ObjC++ mode, then we want to make 
       if (CGM.getLangOptions().CPlusPlus) {
         llvm::Type *VoidTy = llvm::Type::getVoidTy(VMContext);
@@ -649,6 +653,10 @@ class CGObjCGNUstep : public CGObjCGNU {
       }
     }
 };
+
+#define __INCLUDED_FROM_ANOTHER_MODULE__
+#define __RUNTIME_CLASS_DECLARATION__
+#include "CGObjCCocotron.cpp"
 
 } // end anonymous namespace
 
@@ -1926,7 +1934,7 @@ void CGObjCGNU::GenerateClass(const ObjCImplementationDecl *OID) {
     Context.getASTObjCInterfaceLayout(SuperClassDecl).getSize().getQuantity();
   // For non-fragile ivars, set the instance size to 0 - {the size of just this
   // class}.  The runtime will then set this to the correct value on load.
-  if (CGM.getContext().getLangOptions().ObjCNonFragileABI) {
+  if (CGM.getContext().getLangOptions().ObjCNonFragileABI && f_runtime_supports_nfabi) {
     instanceSize = 0 - (instanceSize - superInstanceSize);
   }
 
@@ -1941,7 +1949,7 @@ void CGObjCGNU::GenerateClass(const ObjCImplementationDecl *OID) {
       // Get the offset
       uint64_t BaseOffset = ComputeIvarBaseOffset(CGM, OID, IVD);
       uint64_t Offset = BaseOffset;
-      if (CGM.getContext().getLangOptions().ObjCNonFragileABI) {
+      if (CGM.getContext().getLangOptions().ObjCNonFragileABI && f_runtime_supports_nfabi) {
         Offset = BaseOffset - superInstanceSize;
       }
       llvm::Constant *OffsetValue = llvm::ConstantInt::get(IntTy, Offset);
@@ -2559,3 +2567,6 @@ clang::CodeGen::CreateGNUObjCRuntime(CodeGenModule &CGM) {
     return new CGObjCGNUstep(CGM);
   return new CGObjCGCC(CGM);
 }
+
+#undef __RUNTIME_CLASS_DECLARATION__
+#include "CGObjCCocotron.cpp"

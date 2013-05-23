@@ -127,7 +127,9 @@ CodeGenModule::~CodeGenModule() {
 }
 
 void CodeGenModule::createObjCRuntime() {
-  if (!Features.NeXTRuntime)
+  if (Features.Cocotron)
+    ObjCRuntime = CreateCocotronObjCRuntime(*this);
+  else if (!Features.NeXTRuntime)
     ObjCRuntime = CreateGNUObjCRuntime(*this);
   else
     ObjCRuntime = CreateMacObjCRuntime(*this);
