@@ -109,25 +109,16 @@ public:
         // IMP objc_msg_lookup_super(struct objc_super*, SEL);
         MsgLookupSuperFn.init(&CGM, "objc_msg_lookup_super", IMPTy,
                               PtrToObjCSuperTy, SelectorTy, NULL);
+                              
+        //No support in runtime for NonFragileABI ATM:
+        f_runtime_supports_nfabi = false;
 
-/*        
-        CacheTy = llvm::OpaqueType::get(VMContext);
-        CGM.getModule().addTypeName("struct._objc_cache", CacheTy);
-        CachePtrTy = llvm::PointerType::getUnqual(CacheTy);
-        */
-
-    		CacheTy = llvm::StructType/*OpaqueType*/::get(VMContext);
-        //CGM.getModule().addTypeName("struct._objc_cache", CacheTy);
-        //CacheTy->setName("struct._objc_cache");
+    		CacheTy = llvm::StructType::get(VMContext);
         CGM.getModule().getOrInsertGlobal("struct._objc_cache", CacheTy);
         CachePtrTy = llvm::PointerType::getUnqual(CacheTy);
-
         
         // Force the selector Type.
         SelectorTy = PtrToInt8Ty;
-        
-        //No support in runtime for NonFragileABI ATM:
-        f_runtime_supports_nfabi = false;
     }
     
     //these two are the exact same as the base class.. remove?
@@ -264,23 +255,9 @@ llvm::Constant *CGObjCCocotron::GenerateConstantString(const StringLiteral *SL) 
     if (old != ObjCStrings.end())
         return old->getValue();
     
-    //Start Cocotron Specifics:
-    //llvm::Constant *Zero =
-    //llvm::Constant::getNullValue(llvm::Type::getInt32Ty(VMContext));
-    //llvm::Constant *Zeros[] = { Zero, Zero };
-    
-    //llvm::Type *Ty = CGM.getTypes().ConvertType(CGM.getContext().IntTy);
-    //Ty = llvm::ArrayType::get(Ty, 0);
-    
-    //llvm::Constant *GV;
-    //GV = CGM.CreateRuntimeVariable(Ty, "_NSConstantStringClassReference");
-    
-    //llvm::Constant *ConstantStringClassRef = llvm::ConstantExpr::getGetElementPtr(GV, Zeros);
-    llvm::Constant *ConstantStringClassRef = MakeConstantString("_NSConstantStringClassReference");
-    //End Cocotron Specifics
     std::vector<llvm::Constant*> Ivars;
     //Ivars.push_back(NULLPtr); //Cocotron Commented out
-    Ivars.push_back(ConstantStringClassRef); //Cocotron specific (instead of pushback MakeConstantString
+    Ivars.push_back(MakeConstantString("_NSConstantStringClassReference")); //Cocotron specific (instead of pushback MakeConstantString
     Ivars.push_back(MakeConstantString(Str));
     Ivars.push_back(llvm::ConstantInt::get(IntTy, Str.size()));
     llvm::Constant *ObjCStr = MakeGlobal(
@@ -438,12 +415,6 @@ llvm::Function *CGObjCCocotron::ModuleInitFunction() {
      SelStructPtrTy = llvm::PointerType::getUnqual(SelStructTy);
      }
      */
-    // Name the ObjC types to make the IR a bit easier to read
-    /*
-    TheModule.addTypeName(".objc_selector", PtrToInt8Ty); //Cocotron PtrToInt8Ty
-    TheModule.addTypeName(".objc_id", IdTy);
-    TheModule.addTypeName(".objc_imp", IMPTy);
-    */
     
     std::vector<llvm::Constant*> Elements;
     llvm::Constant *Statics = NULLPtr;
