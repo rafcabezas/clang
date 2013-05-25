@@ -2315,12 +2315,17 @@ void Clang::ConstructJob(Compilation &C, const JobAction &JA,
   bool NeXTRuntimeIsDefault
     = (IsRewriter || IsModernRewriter ||
        getToolChain().getTriple().isOSDarwin());
-  if (Args.hasFlag(options::OPT_fnext_runtime, options::OPT_fgnu_runtime,
-                   NeXTRuntimeIsDefault)) {
-    objCRuntime.setKind(ObjCRuntime::NeXT);
-  } else {
+  if (Args.hasArg(options::OPT_fgnu_runtime)) {
+  	printf("Kind of runtime: GNU\n");
     CmdArgs.push_back("-fgnu-runtime");
     objCRuntime.setKind(ObjCRuntime::GNU);
+  } else if (Args.hasArg(options::OPT_fcocotron_runtime)) {
+  	printf("Kind of runtime: Cocotron\n");
+	  CmdArgs.push_back("-fcocotron-runtime");
+	  objCRuntime.setKind(ObjCRuntime::Cocotron);
+  } else {
+  	printf("Kind of runtime: NeXT\n");
+    objCRuntime.setKind(ObjCRuntime::NeXT);
   }
   getToolChain().configureObjCRuntime(objCRuntime);
   if (objCRuntime.HasARC)

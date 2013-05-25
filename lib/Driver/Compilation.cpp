@@ -139,9 +139,18 @@ bool Compilation::CleanupFileList(const ArgStringList &Files,
 
 int Compilation::ExecuteCommand(const Command &C,
                                 const Command *&FailingCommand) const {
-  llvm::sys::Path Prog(C.getExecutable());
+  //llvm::sys::Path Prog(C.getExecutable());
+  //
+  const char *execString = C.getExecutable();
+  //printf("Compilation::ExecuteCommnand Exe='%s'\n", execString);
+  if (execString && (strlen(execString) > 1) && strchr(execString, '/')) {
+        execString = strchr(execString, '/');
+       // printf("Compilation::ExecuteCommnand Changed to='%s'\n", execString);
+  }
+  llvm::sys::Path Prog(execString);
+  //
   const char **Argv = new const char*[C.getArguments().size() + 2];
-  Argv[0] = C.getExecutable();
+  Argv[0] = execString;//C.getExecutable();
   std::copy(C.getArguments().begin(), C.getArguments().end(), Argv+1);
   Argv[C.getArguments().size() + 1] = 0;
 
@@ -181,6 +190,7 @@ int Compilation::ExecuteCommand(const Command &C,
                                        /*secondsToWait*/0, /*memoryLimit*/0,
                                        &Error);
   if (!Error.empty()) {
+    printf("ExecuteCommand: Error executing Prog: '%s'\n", execString);
     assert(Res && "Error string set with 0 result code!");
     getDriver().Diag(clang::diag::err_drv_command_failure) << Error;
   }

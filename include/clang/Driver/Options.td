@@ -367,6 +367,7 @@ def fgnu_keywords : Flag<"-fgnu-keywords">, Group<f_Group>;
 def fgnu89_inline : Flag<"-fgnu89-inline">, Group<f_Group>;
 def fno_gnu89_inline : Flag<"-fno-gnu89-inline">, Group<f_Group>;
 def fgnu_runtime : Flag<"-fgnu-runtime">, Group<f_Group>;
+def fcocotron_runtime : Flag<"-fcocotron-runtime">, Group<f_Group>;
 def fheinous_gnu_extensions : Flag<"-fheinous-gnu-extensions">;
 def filelist : Separate<"-filelist">, Flags<[LinkerInput]>;
 def findirect_virtual_calls : Flag<"-findirect-virtual-calls">, Alias<fapple_kext>;

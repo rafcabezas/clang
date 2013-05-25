@@ -66,6 +66,14 @@ void ToolChain::configureObjCRuntime(ObjCRuntime &runtime) const {
     runtime.HasSubscripting = false; // to be added
     runtime.HasTerminate = false; // to be added
     return;
+          
+  case ObjCRuntime::Cocotron:
+      // Assume a maximal Cocotron runtime.
+      runtime.HasARC = true;
+      runtime.HasWeak = true;
+      runtime.HasSubscripting = false; // to be added
+      runtime.HasTerminate = false; // to be added
+      return;
   }
   llvm_unreachable("invalid runtime kind!");
 }
