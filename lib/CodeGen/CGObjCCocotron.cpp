@@ -222,8 +222,8 @@ llvm::Value *CGObjCCocotron::GetSelector(CGBuilderTy &Builder, Selector Sel,
      return SelValue;
      */
     
-    //llvm::Value *selectorString = CGM.GetAddrOfConstantCString(Sel.getAsString());
-    //selectorString = Builder.CreateStructGEP(selectorString, 0);
+    llvm::Value *selectorString = CGM.GetAddrOfConstantCString(Sel.getAsString());
+    selectorString = Builder.CreateStructGEP(selectorString, 0);
     
     llvm::Constant *sel_getUidFn =
     CGM.CreateRuntimeFunction(llvm::FunctionType::get(IdTy,
@@ -231,7 +231,7 @@ llvm::Value *CGObjCCocotron::GetSelector(CGBuilderTy &Builder, Selector Sel,
                                                       true),
                               "sel_getUid");
     
-    return Builder.CreateCall(sel_getUidFn, MakeConstantString(Sel.getAsString()));
+    return Builder.CreateCall(sel_getUidFn, selectorString);
 }
 
 //these two are the exact same as the base class.. remove? IF not, keep exactly like base's
@@ -284,17 +284,18 @@ llvm::Constant *CGObjCCocotron::GenerateConstantString(const StringLiteral *SL) 
     isa = llvm::ConstantExpr::getBitCast(isa, PtrToIdTy); 
 #endif
 
-  std::vector<llvm::Constant*> Ivars;
-  Ivars.push_back(MakeConstantString("_NSConstantStringClassReference")); //Cocotron specific (instead of pushback MakeConstantString
-  Ivars.push_back(MakeConstantString(Str));
-  Ivars.push_back(llvm::ConstantInt::get(IntTy, Str.size()));
-  llvm::Constant *ObjCStr = MakeGlobal(
-    llvm::StructType::get(PtrToInt8Ty, PtrToInt8Ty, IntTy, NULL), //Cocotron: Note first arg is Int8Ptr
-    Ivars, ".objc_str");
-  ObjCStr = llvm::ConstantExpr::getBitCast(ObjCStr, PtrToInt8Ty);
-  ObjCStrings[Str] = ObjCStr;
-  ConstantStrings.push_back(ObjCStr);
-  return ObjCStr;
+    std::vector<llvm::Constant*> Ivars;
+    //Ivars.push_back(NULLPtr); //Cocotron Commented out
+    Ivars.push_back(MakeConstantString("_NSConstantStringClassReference")); //Cocotron specific (instead of pushback MakeConstantString
+    Ivars.push_back(MakeConstantString(Str));
+    Ivars.push_back(llvm::ConstantInt::get(IntTy, Str.size()));
+    llvm::Constant *ObjCStr = MakeGlobal(
+                                         llvm::StructType::get(PtrToInt8Ty, PtrToInt8Ty, IntTy, NULL), //PtrToInt8Ty is Cocotron's chg
+                                         Ivars, ".objc_str");
+    ObjCStr = llvm::ConstantExpr::getBitCast(ObjCStr, PtrToInt8Ty);
+    ObjCStrings[Str] = ObjCStr;
+    ConstantStrings.push_back(ObjCStr);
+    return ObjCStr;
 }
 
 
