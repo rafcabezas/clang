@@ -119,6 +119,12 @@ public:
         
         // Force the selector Type.
         SelectorTy = PtrToInt8Ty;
+        
+        //Force the runtime
+        //If using ARC the super constructor will change this to 10 and
+        //do bad things (i.e. ivar offsets that are not currently supported
+        //by the cocotron runtime)
+        RuntimeVersion = 0; 
     }
     
     //these two are the exact same as the base class.. remove?
